@@ -1,0 +1,26 @@
+#!/bin/sh
+
+if ( test -z "$1" )
+then
+	echo "usage: dropintest [mysql|postgresql]"
+	exit
+fi
+
+if ( test "$1" = "mysql" )
+then
+	export LD_PRELOAD=/usr/local/firstworks/lib/libmysql51sqlrelay.so.4
+	./mysql
+fi
+
+if ( test "$1" = "mysqldatetodatetime" )
+then
+	export LD_PRELOAD=/usr/local/firstworks/lib/libmysql51sqlrelay.so.4
+	export SQLR_MYSQL_MAP_DATE_TO_DATETIME=yes
+	./mysqldatetodatetime
+fi
+
+if ( test "$1" = "postgresql" )
+then
+	export LD_PRELOAD=/usr/local/firstworks/lib/libpqsqlrelay.so.4
+	./postgresql
+fi

@@ -1,0 +1,3 @@
+	if (!charstring::compare(module,"@module@")) {
+		lg=new_sqlrlogger_@module@(this,logger);
+	} else

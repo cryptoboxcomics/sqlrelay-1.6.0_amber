@@ -1,0 +1,1219 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(src/server/sqlr-listener.cpp)
+
+dnl Compile time options.
+AC_ARG_ENABLE(small-code,
+	[  --enable-small-code           optimize for small code size],
+	SMALLCODE="-O -Os -fno-exceptions",
+	SMALLCODE="")
+AC_ARG_ENABLE(debug,
+	[  --enable-debug                compile with -g option],
+	DEBUG="yes",
+	DEBUG="")
+AC_ARG_ENABLE(profiling,
+	[  --enable-profiling            compile with -pg options],
+	CFLAGS="$CFLAGS -pg"; CXXFLAGS="$CXXFLAGS -pg",
+	CFLAGS="$CFLAGS"; CXXFLAGS="$CXXFLAGS")
+AC_ARG_ENABLE(fortify,
+	[  --enable-fortify              compile with various gcc fortification options],
+	CFLAGS="$CFLAGS -O -D_FORTIFY_SOURCE=2 -fstack-protector-strong"; CXXFLAGS="$CXXFLAGS -O -D_FORTIFY_SOURCE=2 -fstack-protector-strong",
+	CFLAGS="$CFLAGS"; CXXFLAGS="$CXXFLAGS")
+AC_ARG_ENABLE(wall,
+	[  --disable-wall          compile without -Wall, even if supported],
+	ENABLE_WALL="",
+	ENABLE_WALL="yes")
+AC_ARG_ENABLE(werror,
+	[  --disable-werror        compile without -Werror, even if supported],
+	ENABLE_WERROR="",
+	ENABLE_WERROR="yes")
+
+CFLAGS="$SMALLCODE $CFLAGS"
+CXXFLAGS="$SMALLCODE $CXXFLAGS"
+
+AC_ARG_ENABLE(server,
+	[  --disable-server              Don't build any SQL Relay server components],
+	ENABLE_SERVER="",
+	ENABLE_SERVER="yes")
+AC_ARG_ENABLE(client,
+	[  --disable-client              Don't build any SQL Relay client components],
+	ENABLE_CLIENT="",
+	ENABLE_CLIENT="yes")
+AC_ARG_ENABLE(cmdline,
+	[  --disable-cmdline             Don't build any SQL Relay command line client programs],
+	ENABLE_CMDLINE="",
+	ENABLE_CMDLINE="yes")
+AC_ARG_WITH(initscript-prefix,
+	[  --with-initscript-prefix      prefix to install initscripts under],
+	initscript_prefix="$withval",
+	initscript_prefix="")
+AC_ARG_ENABLE(client-rpath,
+	[  --enable-client-rpath         Use -rpath when linking SQL Relay client programs against SQL Relay libraries],
+	CLIENTUSERPATH="yes",
+	CLIENTUSERPATH="")
+AC_ARG_ENABLE(server-rpath,
+	[  --enable-server-rpath         Use -rpath when linking SQL Relay server programs against SQL Relay libraries],
+	SERVERUSERPATH="yes",
+	SERVERUSERPATH="")
+AC_ARG_WITH(rudiments-prefix,
+	[  --with-rudiments-prefix       Location of rudiments],
+	RUDIMENTSPATH="$withval",
+	RUDIMENTSPATH="")
+AC_ARG_WITH(libgdbm-prefix,
+	[  --with-libgdbm-prefix         Location of libgdbm],
+	GDBMPATH="$withval",
+	GDBMPATH="")
+AC_ARG_WITH(glib-prefix,
+	[  --with-glib-prefix            Location of glib],
+	GLIBPATH="$withval",
+	GLIBPATH="")
+AC_ARG_WITH(oracle-home,
+	[  --with-oracle-home            Location of Oracle],
+	ORACLE_HOME="$withval")
+AC_ARG_WITH(oracle-instantclient-prefix,
+	[  --with-oracle-instantclient-prefix  Location of Oracle Instantclient],
+	ORACLE_INSTANTCLIENT_PREFIX="$withval")
+AC_ARG_ENABLE(oracle,
+	[  --disable-oracle              Don't build Oracle connection module],
+	ENABLE_ORACLE="",
+	ENABLE_ORACLE="yes")
+AC_ARG_ENABLE(oracle-rpath,
+	[  --disable-oracle-rpath        Don't use -rpath when building Oracle connection module],
+	ORACLEUSERPATH="",
+	ORACLEUSERPATH="yes")
+AC_ARG_ENABLE(oracle-at-runtime,
+	[  --enable-oracle-at-runtime    Disable static/dynamic linking against Oracle client libraries and force the connection module to load them at runtime],
+	ORACLEATRUNTIME="yes",
+	ORACLEATRUNTIME="")
+AC_ARG_WITH(mysql-prefix,
+	[  --with-mysql-prefix           Location of MySQL],
+	MYSQLPATH="$withval",
+	MYSQLPATH="")
+AC_ARG_ENABLE(mysql,
+	[  --disable-mysql               Don't build MySQL connection module],
+	ENABLE_MYSQL="",
+	ENABLE_MYSQL="yes")
+AC_ARG_ENABLE(mysql-rpath,
+	[  --enable-mysql-rpath          Use -rpath when building MySQL connection module],
+	MYSQLUSERPATH="yes",
+	MYSQLUSERPATH="")
+AC_ARG_WITH(postgresql-prefix,
+	[  --with-postgresql-prefix      Location of PostgreSQL],
+	POSTGRESQLPATH="$withval",
+	POSTGRESQLPATH="")
+AC_ARG_ENABLE(postgresql,
+	[  --disable-postgresql          Don't build PostgreSQL connection module],
+	ENABLE_POSTGRESQL="",
+	ENABLE_POSTGRESQL="yes")
+AC_ARG_ENABLE(postgresql-rpath,
+	[  --enable-postgresql-rpath     Use -rpath when building PostgreSQL connection module],
+	POSTGRESQLUSERPATH="yes",
+	POSTGRESQLUSERPATH="")
+AC_ARG_ENABLE(postgresql8-api,
+	[  --disable-postgresql8-api     Use older postgresql api without native bind support],
+	ENABLE_POSTGRESQL8API="",
+	ENABLE_POSTGRESQL8API="yes")
+AC_ARG_WITH(sqlite-prefix,
+	[  --with-sqlite-prefix          Location of SQLite],
+	SQLITEPATH="$withval",
+	SQLITEPATH="")
+AC_ARG_ENABLE(sqlite,
+	[  --disable-sqlite              Don't build SQLite connection module],
+	ENABLE_SQLITE="",
+	ENABLE_SQLITE="yes")
+AC_ARG_ENABLE(sqlite-rpath,
+	[  --enable-sqlite-rpath         Use -rpath when building SQLite connection module],
+	SQLITEUSERPATH="yes",
+	SQLITEUSERPATH="")
+AC_ARG_WITH(freetds-prefix,
+	[  --with-freetds-prefix         Location of FreeTDS],
+	FREETDSPATH="$withval",
+	FREETDSPATH="")
+AC_ARG_ENABLE(freetds,
+	[  --disable-freetds             Don't build FreeTDS connection module],
+	ENABLE_FREETDS="",
+	ENABLE_FREETDS="yes")
+AC_ARG_ENABLE(freetds-rpath,
+	[  --disable-freetds-rpath       Don't use -rpath when building FreeTDS connection module],
+	FREETDSUSERPATH="",
+	FREETDSUSERPATH="yes")
+AC_ARG_WITH(sap-prefix,
+	[  --with-sap-prefix             Location of SAP/Sybase],
+	SYBASEPATH="$withval",
+	SYBASEPATH="")
+AC_ARG_ENABLE(sap,
+	[  --disable-sap                 Don't build SAP/Sybase connection module],
+	ENABLE_SYBASE="",
+	ENABLE_SYBASE="yes")
+AC_ARG_ENABLE(sap-rpath,
+	[  --disable-sap-rpath           Don't use -rpath when building SAP/Sybase connection module],
+	SYBASEUSERPATH="",
+	SYBASEUSERPATH="yes")
+AC_ARG_ENABLE(sap-at-runtime,
+	[  --enable-sap-at-runtime       Disable static/dynamic linking against SAP/Sybase client libraries and force the connection module to load them at runtime],
+	SYBASEATRUNTIME="yes",
+	SYBASEATRUNTIME="")
+AC_ARG_WITH(odbc-prefix,
+	[  --with-odbc-prefix            Location of ODBC],
+	ODBCPATH="$withval",
+	ODBCPATH="")
+AC_ARG_ENABLE(odbc,
+	[  --disable-odbc                Don't build ODBC connection module],
+	ENABLE_ODBC="",
+	ENABLE_ODBC="yes")
+AC_ARG_ENABLE(odbc-rpath,
+	[  --enable-odbc-rpath           Use -rpath when building ODBC connection module],
+	ODBCUSERPATH="yes",
+	ODBCUSERPATH="")
+AC_ARG_WITH(db2-prefix,
+	[  --with-db2-prefix             Location of DB2],
+	DB2PATH="$withval",
+	DB2PATH="")
+AC_ARG_WITH(db2-version,
+	[  --with-db2-version            DB2 Version (7 or 8)],
+	DB2VERSION="$withval",
+	DB2VERSION="8")
+AC_ARG_ENABLE(db2,
+	[  --disable-db2                 Don't build DB2 connection module],
+	ENABLE_DB2="",
+	ENABLE_DB2="yes")
+AC_ARG_ENABLE(db2-rpath,
+	[  --disable-db2-rpath           Use -rpath when building DB2 connection module],
+	DB2USERPATH="",
+	DB2USERPATH="yes")
+AC_ARG_ENABLE(db2-at-runtime,
+	[  --enable-db2-at-runtime       Disable static/dynamic linking against DB2 client libraries and force the connection module to load them at runtime],
+	DB2ATRUNTIME="yes",
+	DB2ATRUNTIME="")
+AC_ARG_WITH(firebird-prefix,
+	[  --with-firebird-prefix        Location of Firebird],
+	FIREBIRDPATH="$withval",
+	FIREBIRDPATH="")
+AC_ARG_ENABLE(firebird,
+	[  --disable-firebird            Don't build Firebird connection module],
+	ENABLE_FIREBIRD="",
+	ENABLE_FIREBIRD="yes")
+AC_ARG_ENABLE(firebird-rpath,
+	[  --enable-firebird-rpath       Use -rpath when building Firebird connection module],
+	FIREBIRDUSERPATH="yes",
+	FIREBIRDUSERPATH="")
+AC_ARG_WITH(informix-prefix,
+	[  --with-informix-prefix        Location of Informix],
+	INFORMIXPATH="$withval",
+	INFORMIXPATH="")
+AC_ARG_ENABLE(informix,
+	[  --disable-informix            Don't build Informix connection module],
+	ENABLE_INFORMIX="",
+	ENABLE_INFORMIX="yes")
+AC_ARG_ENABLE(informix-rpath,
+	[  --disable-informix-rpath      Don't use -rpath when building Informix connection module],
+	INFORMIXUSERPATH="",
+	INFORMIXUSERPATH="yes")
+AC_ARG_ENABLE(informix-at-runtime,
+	[  --enable-informix-at-runtime  Disable static/dynamic linking against Informix client libraries and force the connection module to load them at runtime],
+	INFORMIXATRUNTIME="yes",
+	INFORMIXATRUNTIME="")
+AC_ARG_WITH(mdbtools-prefix,
+	[  --with-mdbtools-prefix        Location of MDB Tools],
+	MDBTOOLSPATH="$withval",
+	MDBTOOLSPATH="")
+AC_ARG_ENABLE(mdbtools,
+	[  --disable-mdbtools            Don't build MDB Tools connection module],
+	ENABLE_MDBTOOLS="",
+	ENABLE_MDBTOOLS="yes")
+AC_ARG_ENABLE(mdbtools-rpath,
+	[  --enable-mdbtools-rpath       Use -rpath when building MDB Tools connection module],
+	MDBTOOLSUSERPATH="yes",
+	MDBTOOLSUSERPATH="")
+AC_ARG_ENABLE(router,
+	[  --disable-router              Don't build router connection module],
+	ENABLE_ROUTER="",
+	ENABLE_ROUTER="yes")
+AC_ARG_ENABLE(odbc-driver,
+	[  --disable-odbc-driver         Don't build ODBC driver],
+	ENABLE_ODBC_DRIVER="",
+	ENABLE_ODBC_DRIVER="yes")
+AC_ARG_WITH(perl-prefix,
+	[  --with-perl-prefix            Location of Perl],
+	PERLPATH="$withval",
+	PERLPATH="")
+AC_ARG_WITH(pod2man,
+	[  --with-pod2man                Full pathname of pod2man],
+	POD2MAN="$withval",
+	POD2MAN="")
+AC_ARG_ENABLE(perl,
+	[  --disable-perl                Don't build Perl api],
+	ENABLE_PERL="",
+	ENABLE_PERL="yes")
+AC_ARG_WITH(perl-site-arch,
+	[  --with-perl-site-arch         Override Perl's built-in PERLSITEARCH variable (location to install binary perl modules)],
+	OVERRIDEPERLSITEARCH="$withval",
+	OVERRIDEPERLSITEARCH="")
+AC_ARG_WITH(perl-site-lib,
+	[  --with-perl-site-lib          Override Perl's built-in PERLSITELIB variable (location to install non-binary perl modules)],
+	OVERRIDEPERLSITELIB="$withval",
+	OVERRIDEPERLSITELIB="")
+AC_ARG_WITH(perl-install-man3-dir,
+	[  --with-perl-install-man3-dir  Override Perl's built-in PERLINSTALLMAN3DIR variable (location to install perl module man pages)],
+	OVERRIDEPERLINSTALLMAN3DIR="$withval",
+	OVERRIDEPERLINSTALLMAN3DIR="")
+AC_ARG_WITH(perl-man3-ext,
+	[  --with-perl-man3-ext          Override Perl's built-in PERLMAN3EXT variable (extension to put on perl module man pages)],
+	OVERRIDEPERLMAN3EXT="$withval",
+	OVERRIDEPERLMAN3EXT="")
+AC_ARG_WITH(python-prefix,
+	[  --with-python-prefix          Location of Python],
+	PYTHONPATH="$withval",
+	PYTHONPATH="")
+AC_ARG_ENABLE(python,
+	[  --disable-python              Don't build Python api],
+	ENABLE_PYTHON="",
+	ENABLE_PYTHON="yes")
+AC_ARG_ENABLE(python-rpath,
+	[  --enable-python-rpath         Use -rpath when linking the Python library against the SQL Relay client library],
+	PYTHONUSERPATH="yes",
+	PYTHONUSERPATH="")
+AC_ARG_WITH(python-dir,
+	[  --with-python-dir             Path to install Python api],
+	PYTHONDIR="$withval",
+	PYTHONDIR="")
+AC_ARG_WITH(ruby-prefix,
+	[  --with-ruby-prefix            Location of Ruby],
+	RUBYPATH="$withval",
+	RUBYPATH="")
+AC_ARG_ENABLE(ruby,
+	[  --disable-ruby                Don't build Ruby api],
+	ENABLE_RUBY="",
+	ENABLE_RUBY="yes")
+AC_ARG_WITH(ruby-site-arch-dir,
+	[  --with-ruby-site-arch-dir     Override Ruby's built-in sitearchdir variable (location to install binary ruby modules)],
+	OVERRIDERUBYSITEARCHDIR="$withval",
+	OVERRIDERUBYSITEARCHDIR="")
+AC_ARG_WITH(java-prefix,
+	[  --with-java-prefix            Location of Java],
+	JAVAPATH="$withval",
+	JAVAPATH="")
+AC_ARG_ENABLE(java,
+	[  --disable-java                Don't build Java api],
+	ENABLE_JAVA="",
+	ENABLE_JAVA="yes")
+AC_ARG_ENABLE(java-rpath,
+	[  --enable-java-rpath           Use -rpath when linking the Java library against the SQL Relay client library],
+	JAVAUSERPATH="yes",
+	JAVAUSERPATH="")
+AC_ARG_WITH(php-prefix,
+	[  --with-php-prefix             Location of PHP],
+	PHPPATH="$withval",
+	PHPPATH="")
+AC_ARG_ENABLE(php,
+	[  --disable-php                 Don't build PHP api],
+	ENABLE_PHP="",
+	ENABLE_PHP="yes")
+AC_ARG_ENABLE(php-rpath,
+	[  --enable-php-rpath            Use -rpath when linking the PHP library against the SQL Relay client library],
+	PHPUSERPATH="yes",
+	PHPUSERPATH="")
+AC_ARG_WITH(php-ext-dir,
+	[  --with-php-ext-dir            Path to install PHP modules],
+	PHPEXTDIR="$withval",
+	PHPEXTDIR="")
+AC_ARG_WITH(tcl-include,
+	[  --with-tcl-include		Location of tcl.h include file],
+	TCLINCLUDEPATH="$withval",
+	TCLINCLUDEPATH="")
+AC_ARG_WITH(tcl-libraries,
+	[  --with-tcl-libraries		Location of libtcl, where to install tcl module],
+	TCLLIBSPATH="$withval",
+	TCLLIBSPATH="")
+AC_ARG_ENABLE(tcl,
+	[  --disable-tcl                 Don't build TCL api],
+	ENABLE_TCL="",
+	ENABLE_TCL="yes")
+AC_ARG_ENABLE(tcl-rpath,
+	[  --enable-tcl-rpath            Use -rpath when linking the TCL library against the SQL Relay client library],
+	TCLUSERPATH="yes",
+	TCLUSERPATH="")
+AC_ARG_WITH(erlang-prefix,
+	[  --with-erlang-prefix          Location of Erlang],
+	ERLANGPATH="$withval",
+	ERLANGPATH="")
+AC_ARG_ENABLE(erlang,
+	[  --disable-erlang              Don't build Erlang api],
+	ENABLE_ERLANG="",
+	ENABLE_ERLANG="yes")
+AC_ARG_ENABLE(erlang-rpath,
+	[  --enable-erlang-rpath         Use -rpath when linking the Erlang library against the SQL Relay client library],
+	ERLANGUSERPATH="yes",
+	ERLANGUSERPATH="")
+AC_ARG_WITH(mono-prefix,
+	[  --with-mono-prefix            Location of Mono (C#)],
+	MONOPATH="$withval",
+	MONOPATH="")
+AC_ARG_ENABLE(mono,
+	[  --disable-mono                Don't build Mono/C# api],
+	ENABLE_MONO="",
+	ENABLE_MONO="yes")
+AC_ARG_WITH(nodejs-prefix,
+	[  --with-nodejs-prefix          Location of node.js],
+	NODEJSPATH="$withval",
+	NODEJSPATH="")
+AC_ARG_ENABLE(nodejs,
+	[  --disable-nodejs              Don't build node.js api],
+	ENABLE_NODEJS="",
+	ENABLE_NODEJS="yes")
+AC_ARG_ENABLE(c-rpath,
+	[  --enable-c-rpath              Use -rpath when linking the C library against the SQL Relay client library],
+	CUSERPATH="yes",
+	CUSERPATH="")
+AC_ARG_ENABLE(mysql-drop-in,
+	[  --disable-mysql-drop-in       Don't build mysql drop-in-replacement library],
+	ENABLE_MYSQL_DROP_IN="",
+	ENABLE_MYSQL_DROP_IN="yes")
+AC_ARG_ENABLE(postgresql-drop-in,
+	[  --disable-postgresql-drop-in  Don't build postgresql drop-in-replacement library],
+	ENABLE_POSTGRESQL_DROP_IN="",
+	ENABLE_POSTGRESQL_DROP_IN="yes")
+AC_ARG_ENABLE(psql-rpath,
+	[  --enable-psql-rpath           Use -rpath when linking the postgresql drop-in replacement library against the SQL Relay client library],
+	PSQLUSERPATH="yes",
+	PSQLUSERPATH="")
+AC_ARG_WITH(pthread-prefix,
+	[  --with-pthread-prefix         Location of pthread library],
+	PTHREADPATH="$withval",
+	PTHREADPATH="")
+AC_ARG_WITH(system-libtool,
+	[  --with-system-libtool   use system libtool instead of ./libtool],
+	USE_SYSTEM_LIBTOOL="$withval",
+	USE_SYSTEM_LIBTOOL="no")
+AC_ARG_ENABLE(dmalloc,
+	[  --enable-dmalloc              Use the dmalloc library],
+	DMALLOC="1"; LIBDMALLOC="-ldmalloc",
+	DMALLOC=""; LIBDMALLOC="")
+AC_DEFINE_UNQUOTED(DMALLOC,1,Use dmalloc)
+AC_ARG_ENABLE(efence,
+	[  --enable-efence               Use the efence library],
+	LIBEFENCE="-lefence",
+	LIBEFENCE="")
+AC_ARG_WITH(sqlr,
+	[  --with-sqlr                   replacement for "sqlr"],
+	SQLR="$withval",
+	SQLR="sqlr")
+AC_ARG_WITH(sqlrelay,
+	[  --with-sqlrelay               replacement for "sqlrelay"],
+	SQLRELAY="$withval",
+	SQLRELAY="sqlrelay")
+AC_ARG_WITH(sql-relay,
+	[  --with-sql-relay              replacement for "SQL Relay"],
+	SQL_RELAY="$withval",
+	SQL_RELAY="SQL Relay")
+AC_ARG_ENABLE(doc,
+	[  --disable-doc                 Don't install docs or man pages],
+	ENABLE_DOC="",
+	ENABLE_DOC="yes")
+AC_ARG_WITH(default-runasuser,
+	[  --with-default-runasuser      Default user to run SQL Relay as],
+	DEFAULT_RUNASUSER="$withval",
+	DEFAULT_RUNASUSER="nobody")
+AC_ARG_WITH(default-runasgroup,
+	[  --with-default-runasgroup     Default group to run SQL Relay as],
+	DEFAULT_RUNASGROUP="$withval",
+	DEFAULT_RUNASGROUP="nobody")
+AC_ARG_WITH(abs-max-connections,
+	[  --with-abs-max-connections    Set the absolute maximum number of connections that may be started for an instance.  Defaults to 4096.],
+	ABS_MAXCONNECTIONS="$withval",
+	ABS_MAXCONNECTIONS="4096")
+
+
+dnl tweak enabled/disabled things
+if ( test -z "$ENABLE_ODBC" )
+then
+	ENABLE_ODBC_DRIVER=""
+fi
+
+if ( test -z "$ENABLE_SERVER" )
+then
+	ENABLE_ORACLE=""
+	ENABLE_MYSQL=""
+	ENABLE_POSTGRESQL=""
+	ENABLE_SQLITE=""
+	ENABLE_FREETDS=""
+	ENABLE_SYBASE=""
+	ENABLE_ODBC=""
+	ENABLE_DB2=""
+	ENABLE_FIREBIRD=""
+	ENABLE_INFORMIX=""
+	ENABLE_MDBTOOLS=""
+	ENABLE_ROUTER=""
+fi
+
+ENABLE_CPP="yes"
+if ( test -z "$ENABLE_CLIENT" )
+then
+	ENABLE_CMDLINE=""
+	ENABLE_CPP=""
+	ENABLE_ODBC_DRIVER=""
+	ENABLE_PERL=""
+	ENABLE_PYTHON=""
+	ENABLE_RUBY=""
+	ENABLE_JAVA=""
+	ENABLE_PHP=""
+	ENABLE_TCL=""
+	ENABLE_ERLANG=""
+	ENABLE_MONO=""
+	ENABLE_NODEJS=""
+	ENABLE_MYSQL_DROP_IN=""
+	ENABLE_POSTGRESQL_DROP_IN=""
+	ENABLE_ROUTER=""
+fi
+
+if ( test "$enable_shared" = "no" )
+then
+	ENABLE_ODBC_DRIVER=""
+	ENABLE_PERL=""
+	ENABLE_PYTHON=""
+	ENABLE_RUBY=""
+	ENABLE_JAVA=""
+	ENABLE_PHP=""
+	ENABLE_TCL=""
+	ENABLE_ERLANG=""
+	ENABLE_MONO=""
+	ENABLE_NODEJS=""
+	ENABLE_MYSQL_DROP_IN=""
+	ENABLE_POSTGRESQL_DROP_IN=""
+	dnl FIXME: disable dynamic linking against db's
+else
+	AC_DEFINE_UNQUOTED(SQLRELAY_ENABLE_SHARED,1,Platform supports shared libraries)
+fi
+
+ENABLE_UTIL="yes"
+if ( test -z "$ENABLE_SERVER" -a -z "$ENABLE_CMDLINE" )
+then
+	ENABLE_UTIL=""
+fi
+
+
+dnl define substitutions related to config options
+AC_SUBST(enable_shared)
+AC_SUBST(initscript_prefix)
+AC_SUBST(CLIENTUSERPATH)
+AC_SUBST(SERVERUSERPATH)
+AC_SUBST(ORACLEUSERPATH)
+AC_SUBST(MYSQLUSERPATH)
+AC_SUBST(POSTGRESQLUSERPATH)
+AC_SUBST(SQLITEUSERPATH)
+AC_SUBST(FREETDSUSERPATH)
+AC_SUBST(SYBASEUSERPATH)
+AC_SUBST(ODBCUSERPATH)
+AC_SUBST(DB2USERPATH)
+AC_SUBST(FIREBIRDUSERPATH)
+AC_SUBST(INFORMIXUSERPATH)
+AC_SUBST(MDBTOOLSUSERPATH)
+AC_SUBST(ENABLE_ROUTER)
+AC_SUBST(OVERRIDEPERLSITEARCH)
+AC_SUBST(OVERRIDEPERLSITELIB)
+AC_SUBST(OVERRIDEPERLINSTALLMAN3DIR)
+AC_SUBST(OVERRIDEPERLMAN3EXT)
+AC_SUBST(PYTHONUSERPATH)
+AC_SUBST(OVERRIDERUBYSITEARCHDIR)
+AC_SUBST(JAVAUSERPATH)
+AC_SUBST(PHPUSERPATH)
+AC_SUBST(TCLUSERPATH)
+AC_SUBST(ERLANGUSERPATH)
+AC_SUBST(CUSERPATH)
+AC_SUBST(ENABLE_MYSQL_DROP_IN)
+AC_SUBST(ENABLE_POSTGRESQL_DROP_IN)
+AC_SUBST(PSQLUSERPATH)
+AC_SUBST(LIBDMALLOC)
+AC_SUBST(LIBEFENCE)
+AC_SUBST(SQLR)
+AC_SUBST(SQLRELAY)
+AC_SUBST(SQL_RELAY)
+AC_SUBST(ENABLE_CPP)
+AC_SUBST(ENABLE_ODBC_DRIVER)
+AC_SUBST(ENABLE_CMDLINE)
+AC_SUBST(ENABLE_SERVER)
+AC_SUBST(ENABLE_UTIL)
+AC_SUBST(ENABLE_DOC)
+AC_SUBST(ABS_MAXCONNECTIONS)
+
+AC_DEFINE_UNQUOTED(SQLR,["$SQLR"],replacement for "sqlr")
+AC_DEFINE_UNQUOTED(SQLRELAY,["$SQLRELAY"],replacement for "sqlrelay")
+AC_DEFINE_UNQUOTED(SQL_RELAY,["$SQL_RELAY"],replacement for "SQL Relay")
+
+AC_DEFINE_UNQUOTED(DEFAULT_RUNASUSER,["$DEFAULT_RUNASUSER"],default user to run SQL Relay as)
+AC_DEFINE_UNQUOTED(DEFAULT_RUNASGROUP,["$DEFAULT_RUNASGROUP"],default group to run SQL Relay as)
+
+
+dnl Rewrite supplied paths.
+PWD=`pwd`
+if ( test -n "$RUDIMENTSPATH"  -a "`echo $RUDIMENTSPATH | cut -c-3`" = "../" ); then
+	RUDIMENTSPATH="$PWD/$RUDIMENTSPATH"
+fi
+if ( test -n "$GDBMPATH" -a "`echo $GDBMPATH | cut -c-3`" = "../" ); then
+	GDBMPATH="$PWD/$GDBMPATH"
+fi
+if ( test -n "$GLIBPATH" -a "`echo $GLIBPATH | cut -c-3`" = "../" ); then
+	GLIBPATH="$PWD/$GLIBPATH"
+fi
+if ( test -n "$MYSQLPATH" -a "`echo $MYSQLPATH | cut -c-3`" = "../" ); then
+	MYSQLPATH="$PWD/$MYSQLPATH"
+fi
+if ( test -n "$POSTGRESQLPATH" -a "`echo $POSTGRESQLPATH | cut -c-3`" = "../" ); then
+	POSTGRESQLPATH="$PWD/$POSTGRESQLPATH"
+fi
+if ( test -n "$SQLITEPATH" -a "`echo $SQLITEPATH | cut -c-3`" = "../" ); then
+	SQLITEPATH="$PWD/$SQLITEPATH"
+fi
+if ( test -n "$FREETDSPATH" -a "`echo $FREETDSPATH | cut -c-3`" = "../" ); then
+	FREETDSPATH="$PWD/$FREETDSPATH"
+fi
+if ( test -n "$SYBASEPATH" -a "`echo $SYBASEPATH | cut -c-3`" = "../" ); then
+	SYBASEPATH="$PWD/$SYBASEPATH"
+fi
+if ( test -n "$ODBCPATH" -a "`echo $ODBCPATH | cut -c-3`" = "../" ); then
+	ODBCPATH="$PWD/$ODBCPATH"
+fi
+if ( test -n "$DB2PATH" -a "`echo $DB2PATH | cut -c-3`" = "../" ); then
+	DB2PATH="$PWD/$DB2PATH"
+fi
+if ( test -n "$FIREBIRDPATH" -a "`echo $FIREBIRDPATH | cut -c-3`" = "../" ); then
+	FIREBIRDPATH="$PWD/$FIREBIRDPATH"
+fi
+if ( test -n "$MDBTOOLSPATH" -a "`echo $MDBTOOLSPATH | cut -c-3`" = "../" ); then
+	MDBTOOLSPATH="$PWD/$MDBTOOLSPATH"
+fi
+if ( test -n "$PERLPATH" -a "`echo $PERLPATH | cut -c-3`" = "../" ); then
+	PERLPATH="$PWD/$PERLPATH"
+fi
+if ( test -n "$PYTHONPATH" -a "`echo $PYTHONPATH | cut -c-3`" = "../" ); then
+	PYTHONPATH="$PWD/$PYTHONPATH"
+fi
+if ( test -n "$RUBYPATH" -a "`echo $RUBYPATH | cut -c-3`" = "../" ); then
+	RUBYPATH="$PWD/$RUBYPATH"
+fi
+if ( test -n "$JAVAPATH" -a "`echo $JAVAPATH | cut -c-3`" = "../" ); then
+	JAVAPATH="$PWD/$JAVAPATH"
+fi
+if ( test -n "$PHPPATH" -a "`echo $PHPPATH | cut -c-3`" = "../" ); then
+	PHPPATH="$PWD/$PHPPATH"
+fi
+if ( test -n "$ERLANGPATH" -a "`echo $ERLANGPATH | cut -c-3`" = "../" ); then
+	ERLANGPATH="$PWD/$ERLANGPATH"
+fi
+if ( test -n "$PTHREADPATH" -a "`echo $PTHREADPATH | cut -c-3`" = "../" ); then
+	PTHREADPATH="$PWD/$PTHREADPATH"
+fi
+if ( test -n "$TCLINCLUDEPATH" -a "`echo $TCLINCLUDEPATH | cut -c-3`" = "../" ); then
+	TCLINCLUDEPATH="$PWD/$TCLINCLUDEPATH"
+fi
+if ( test -n "$TCLLIBSPATH" -a "`echo $TCLLIBSPATH | cut -c-3`" = "../" ); then
+	TCLLIBSPATH="$PWD/$TCLLIBSPATH"
+fi
+
+
+dnl Checks for programs.
+echo
+echo "***** Programs ***************"
+FW_GMAKE
+AC_PROG_CC
+AC_PROG_CXX
+AC_PROG_CPP
+AC_PROG_INSTALL
+AC_PROG_LN_S
+AC_PROG_MAKE_SET
+AC_LANG(C++)
+echo "******************************"
+
+
+dnl Checks for libtool.
+echo
+echo "***** Libtool ****************"
+AC_LIBTOOL_WIN32_DLL
+AC_PROG_LIBTOOL
+FW_CHECK_USE_SYSTEM_LIBTOOL
+
+dnl have to set ar here because libtool (currently) fails
+dnl to use the correct one when cross-compiling
+AC_CHECK_PROG(AR,$host_alias-ar,$host_alias-ar,ar)
+AC_SUBST(AR)
+echo "******************************"
+
+
+dnl Checks for platform-specific stuff
+echo
+echo "***** Platform ***************"
+FW_CHECK_UNAME
+FW_CHECK_MULTIARCH
+FW_CHECK_X64
+FW_CHECK_MICROSOFT
+FW_CHECK_MINIX
+FW_CHECK_HAIKU
+FW_CHECK_SYLLABLE
+FW_CHECK_SCO_OSR6
+FW_CHECK_SCO_UW
+FW_CHECK_OSX
+FW_CHECK_SO_EXT
+FW_CHECK_PLUGIN_DEPENDENCIES
+
+FW_CHECK_LD_RPATH
+
+FW_CHECK_PIPE
+FW_CHECK_FPIC
+FW_CHECK_WERROR
+FW_CHECK_WALL
+FW_CHECK_WNOOVERLOADEDVIRTUAL
+FW_CHECK_WNOMISMATCHEDTAGS
+FW_CHECK_WNOUNKNOWNPRAGMAS
+FW_CHECK_WNOERRORDATETIME
+FW_CHECK_DEBUG
+FW_CHECK_NEW_DTAGS
+
+FW_CHECK_F_NO_BUILTIN
+
+dnl if LDFLAGS contains -Wl,-z,relro the CPPFLAGS requires -fPIC
+dnl libtool adds it at compile time but we need it for configure tests too
+if ( test -n "`echo $LDFLAGS | grep '\-Wl,\-z,relro'`" )
+then
+	CPPFLAGS="-fPIC $CPPFLAGS"
+fi
+
+echo "******************************"
+
+
+dnl Checks for thread library.
+echo
+echo "***** threads ****************"
+FW_CHECK_PTHREAD
+echo "******************************"
+
+
+dnl Checks for libraries.
+echo
+echo "***** Libraries **************"
+
+FW_CHECK_SOCKET_LIBS
+AC_CHECK_LIB(dl,dlopen,DLLIB=-ldl,DLLIB="")
+AC_SUBST(DLLIB)
+AC_CHECK_LIB(aio,aioread,AIOLIB=-laio,AIOLIB="")
+AC_SUBST(AIOLIB)
+FW_CHECK_NEED_REDHAT_9_GLIBC_2_3_2_HACK
+
+FW_CHECK_ICONV
+
+AC_MSG_CHECKING(whether -lm required for ceil)
+FW_TRY_LINK([#include <math.h>],[ceil(0);],[],[],[],[AC_MSG_RESULT(no); MATHLIB=""],[AC_MSG_RESULT(yes); MATHLIB="-lm"])
+AC_SUBST(MATHLIB)
+
+echo "******************************"
+
+
+dnl Checks for Rudiments.
+echo
+echo "***** Rudiments **************"
+FW_CHECK_RUDIMENTS
+echo "******************************"
+
+
+dnl Checks for Oracle.
+echo
+echo "***** Oracle *****************"
+FW_CHECK_ORACLE
+echo "******************************"
+
+
+
+dnl Checks for MySQL.
+echo
+echo "***** MySQL ******************"
+FW_CHECK_MYSQL
+echo "******************************"
+
+
+
+dnl Checks for PostgreSQL.
+echo
+echo "***** PostgreSQL *************"
+FW_CHECK_POSTGRESQL
+echo "******************************"
+
+
+
+dnl Checks for SQLite.
+echo
+echo "***** SQLite *****************"
+FW_CHECK_SQLITE
+echo "******************************"
+
+
+
+dnl Checks for FreeTDS.
+echo
+echo "***** FreeTDS ****************"
+FW_CHECK_FREETDS
+echo "******************************"
+
+
+
+dnl Checks for SAP/Sybase.
+echo
+echo "***** SAP/Sybase *************"
+FW_CHECK_SYBASE
+echo "******************************"
+
+
+
+dnl Checks for ODBC.
+echo
+echo "***** ODBC *******************"
+FW_CHECK_ODBC
+echo "******************************"
+
+
+
+dnl Checks for DB2.
+echo
+echo "***** DB2 ********************"
+FW_CHECK_DB2
+echo "******************************"
+
+
+
+dnl Checks for Informix.
+echo
+echo "***** Informix ***************"
+FW_CHECK_INFORMIX
+echo "******************************"
+
+
+
+
+dnl Checks for Firebird.
+echo
+echo "***** Firebird ***************"
+FW_CHECK_FIREBIRD
+echo "******************************"
+
+
+
+dnl Checks for MDB Tools.
+echo
+echo "***** MDB Tools **************"
+FW_CHECK_MDBTOOLS
+echo "******************************"
+
+
+
+dnl Checks for Perl.
+echo
+echo "***** Perl *******************"
+FW_CHECK_PERL
+echo "******************************"
+
+
+
+dnl Checks for python
+echo
+echo "***** Python *****************"
+FW_CHECK_PYTHON
+echo "******************************"
+
+
+
+dnl Checks for Ruby.
+echo
+echo "***** Ruby *******************"
+FW_CHECK_RUBY
+echo "******************************"
+
+
+
+dnl Checks for Java.
+echo
+echo "***** Java *******************"
+FW_CHECK_JAVA
+echo "******************************"
+
+
+
+dnl Checks for TCL.
+echo
+echo "***** TCL ********************"
+FW_CHECK_TCL
+echo "******************************"
+
+
+dnl Checks for PHP.
+echo
+echo "***** PHP ********************"
+FW_CHECK_PHP
+FW_CHECK_PHP_PDO
+echo "******************************"
+
+
+
+dnl Checks for Erlang.
+echo
+echo "***** Erlang *****************"
+FW_CHECK_ERLANG
+echo "******************************"
+
+
+
+dnl Checks for Mono.
+echo
+echo "***** Mono *******************"
+FW_CHECK_MONO
+echo "******************************"
+
+
+
+dnl Checks for node.js.
+echo
+echo "***** node.js ****************"
+FW_CHECK_NODEJS
+echo "******************************"
+
+
+dnl intuitive versioning
+dnl Given a version number MAJOR.MINOR.PATCH, increment the:
+dnl 1. MAJOR when you make very significant changes
+dnl    (and set MINOR and PATCH to 0)
+dnl 2. MINOR when you make backwards-incompatible changes
+dnl    (and set PATCH to 0)
+dnl 3. PATCH when you make backwards-compatible changes
+SQLR_VERSION="1.6.0"
+AC_SUBST(SQLR_VERSION)
+AC_DEFINE_UNQUOTED(SQLR_VERSION,"$SQLR_VERSION",Version)
+
+
+dnl rules for CURRENT:REVISION:AGE version info:
+dnl apply the following rules in order:
+dnl if library source changed at all,         c:r:a -> c:r+1:a
+dnl if interfaces added, removed, or changed, c:r:a -> c+1:0:a
+dnl if interfaces added,                      c:r:a -> c:r:a+1
+dnl if interfaces removed,                    c:r:a -> c:r:0
+SRV_SONAME_VERSION_INFO="9:0:1"
+CLT_SONAME_VERSION_INFO="5:0:0"
+AC_SUBST(SRV_SONAME_VERSION_INFO)
+AC_SUBST(CLT_SONAME_VERSION_INFO)
+
+
+AC_SUBST(STATICLINK)
+AC_PREFIX_DEFAULT(/usr/local/firstworks)
+AC_CONFIG_HEADER(config.h)
+
+
+
+dnl Search for Makefile.in's and output Makefiles from them.
+echo
+echo "***** Output Files ***********"
+AC_SUBST(abs_srcdir)
+AC_SUBST(abs_builddir)
+AC_SUBST(CFLAGS)
+AC_SUBST(CXXFLAGS)
+
+
+# prepend DESTDIR where appropriate
+if ( test "`echo $ac_default_prefix | cut -c1`" = "/" )
+then
+	ac_default_prefix='${DESTDIR}'"$ac_default_prefix"
+fi
+if ( test "`echo $prefix | cut -c1`" = "/" )
+then
+	prefix='${DESTDIR}'"$prefix"
+fi
+if ( test "`echo $exec_prefix | cut -c1`" = "/" )
+then
+	exec_prefix='${DESTDIR}'"$exec_prefix"
+fi
+if ( test "`echo $includedir | cut -c1`" = "/" )
+then
+	includedir='${DESTDIR}'"$includedir"
+fi
+if ( test "`echo $libdir | cut -c1`" = "/" )
+then
+	libdir='${DESTDIR}'"$libdir"
+fi
+if ( test "`echo $libexecdir | cut -c1`" = "/" )
+then
+	libexecdir='${DESTDIR}'"$libexecdir"
+fi
+if ( test "`echo $bindir | cut -c1`" = "/" )
+then
+	bindir='${DESTDIR}'"$bindir"
+fi
+if ( test "`echo $localstatedir | cut -c1`" = "/" )
+then
+	localstatedir='${DESTDIR}'"$localstatedir"
+fi
+if ( test "`echo $sysconfdir | cut -c1`" = "/" )
+then
+	sysconfdir='${DESTDIR}'"$sysconfdir"
+fi
+if ( test "`echo $mandir | cut -c1`" = "/" )
+then
+	mandir='${DESTDIR}'"$mandir"
+fi
+if ( test "`echo $datadir | cut -c1`" = "/" )
+then
+	datadir='${DESTDIR}'"$datadir"
+fi
+
+
+
+CMDLINEBUILD="no "
+if ( test -n "$ENABLE_CMDLINE" ); then
+	CMDLINEBUILD="yes"
+fi
+
+CPPBUILD="no "
+PERLBUILD="no "
+PYTHONBUILD="no "
+RUBYBUILD="no "
+PHPBUILD="no "
+PHPPDOBUILD="no "
+JAVABUILD="no "
+TCLBUILD="no "
+ERLANGBUILD="no "
+MONOBUILD="no "
+NODEJSBUILD="no "
+ODBCDRIVERBUILD="no "
+TESTAPIS=""
+if ( test -n "$ENABLE_CPP" ); then
+	CPPBUILD="yes"
+	TESTAPIS="$TESTAPIS c c++"
+fi
+if ( test -n "$HAVE_PERL" ); then
+	PERLBUILD="yes"
+	TESTAPIS="$TESTAPIS perl perldbi"
+fi
+if ( test -n "$HAVE_PYTHON" ); then
+	PYTHONBUILD="yes"
+	TESTAPIS="$TESTAPIS python pythondb"
+fi
+if ( test -n "$HAVE_RUBY" ); then
+	RUBYBUILD="yes"
+	TESTAPIS="$TESTAPIS ruby"
+fi
+if ( test -n "$HAVE_PHP" ); then
+	PHPBUILD="yes"
+	TESTAPIS="$TESTAPIS php"
+fi
+if ( test -n "$HAVE_PHP_PDO" ); then
+	PHPPDOBUILD="yes"
+	TESTAPIS="$TESTAPIS phppdo"
+fi
+if ( test -n "$HAVE_JAVA" ); then
+	JAVABUILD="yes"
+	TESTAPIS="$TESTAPIS java"
+fi
+if ( test -n "$HAVE_TCL" ); then
+	TCLBUILD="yes"
+	TESTAPIS="$TESTAPIS tcl"
+fi
+if ( test -n "$HAVE_ERLANG" ); then
+	ERLANGBUILD="yes"
+fi
+if ( test -n "$HAVE_MONO" ); then
+	MONOBUILD="yes"
+	TESTAPIS="$TESTAPIS cs"
+fi
+if ( test -n "$HAVE_NODEJS" ); then
+	NODEJSBUILD="yes"
+	TESTAPIS="$TESTAPIS nodejs"
+fi
+if ( test -n "$ENABLE_ODBC_DRIVER" ); then
+	ODBCDRIVERBUILD="yes"
+fi
+
+MYSQLDIBUILD="no    "
+POSTGRESQLDIBUILD="no    "
+if ( test -n "$ENABLE_MYSQL_DROP_IN" ); then
+	MYSQLDIBUILD="yes   "
+fi
+if ( test -n "$ENABLE_POSTGRESQL_DROP_IN" ); then
+	POSTGRESQLDIBUILD="yes   "
+fi
+
+ORACLEBUILD="no        "
+MYSQLBUILD="no        "
+POSTGRESQLBUILD="no        "
+SQLITEBUILD="no        "
+FREETDSBUILD="no        "
+SYBASEBUILD="no        "
+ODBCBUILD="no        "
+DB2BUILD="no        "
+FIREBIRDBUILD="no        "
+MDBTOOLSBUILD="no        "
+INFORMIXBUILD="no        "
+ROUTERBUILD="no        "
+TESTDBS=""
+if ( test -n "$ORACLEVERSION" ); then
+	ORACLEBUILD="dynamic   "
+	if ( test -n "$ORACLESTATIC" ); then
+		ORACLEBUILD="static    "
+	fi
+	#TESTDBS="$TESTDBS oracle tls krb extensions"
+	TESTDBS="$TESTDBS oracle tls extensions"
+else
+	if ( test -n "$ENABLE_ORACLE" ); then
+		ORACLEBUILD="at-runtime"
+	fi
+fi
+if ( test -n "$MYSQLLIBS" ); then
+	MYSQLBUILD="dynamic   "
+	if ( test -n "$MYSQLSTATIC" ); then
+		MYSQLBUILD="static    "
+	fi
+	TESTDBS="$TESTDBS mysql"
+fi
+if ( test -n "$POSTGRESQLLIBS" ); then
+	POSTGRESQLBUILD="dynamic   "
+	if ( test -n "$POSTGRESQLSTATIC" ); then
+		POSTGRESQLBUILD="static    "
+	fi
+	TESTDBS="$TESTDBS postgresql"
+fi
+if ( test -n "$SQLITELIBS" ); then
+	SQLITEBUILD="dynamic   "
+	if ( test -n "$SQLITESTATIC" ); then
+		SQLITEBUILD="static    "
+	fi
+	TESTDBS="$TESTDBS sqlite"
+fi
+if ( test -n "$FREETDSLIBS" ); then
+	FREETDSBUILD="dynamic   "
+	if ( test -n "$FREETDSSTATIC" ); then
+		FREETDSBUILD="static    "
+	fi
+	TESTDBS="$TESTDBS freetds"
+fi
+if ( test -n "$SYBASELIBS" ); then
+	SYBASEBUILD="dynamic   "
+	if ( test -n "$SYBASESTATIC" ); then
+		SYBASEBUILD="static    "
+	fi
+	TESTDBS="$TESTDBS sap"
+else
+	if ( test -n "$ENABLE_SYBASE" ); then
+		SYBASEBUILD="at-runtime"
+	fi
+fi
+if ( test -n "$ENABLE_ODBC" -a -n "$ODBCLIBS" -a "$ODBCUNICODE" ); then
+	ODBCBUILD="dynamic   "
+	if ( test -n "$ODBCSTATIC" ); then
+		ODBCBUILD="static    "
+	fi
+fi
+if ( test -n "$DB2LIBS" ); then
+	DB2BUILD="dynamic   "
+	if ( test -n "$DB2STATIC" ); then
+		DB2BUILD="static    "
+	fi
+	TESTDBS="$TESTDBS db2"
+else
+	if ( test -n "$ENABLE_DB2" ); then
+		DB2BUILD="at-runtime"
+	fi
+fi
+if ( test -n "$FIREBIRDLIBS" ); then
+	FIREBIRDBUILD="dynamic   "
+	if ( test -n "$FIREBIRDSTATIC" ); then
+		FIREBIRDBUILD="static    "
+	fi
+	TESTDBS="$TESTDBS firebird"
+fi
+if ( test -n "$MDBTOOLSLIBS" ); then
+	MDBTOOLSBUILD="dynamic   "
+	if ( test -n "$MDBTOOLSSTATIC" ); then
+		MDBTOOLSBUILD="static    "
+	fi
+	TESTDBS="$TESTDBS mdbtools"
+fi
+if ( test -n "$INFORMIXLIBS" ); then
+	INFORMIXBUILD="dynamic   "
+	if ( test -n "$INFORMIXSTATIC" ); then
+		INFORMIXBUILD="static    "
+	fi
+	TESTDBS="$TESTDBS informix"
+else
+	if ( test -n "$ENABLE_INFORMIX" ); then
+		INFORMIXBUILD="at-runtime"
+	fi
+fi
+if ( test -n "$ENABLE_ROUTER" ); then
+	ROUTERBUILD="yes"
+	TESTDBS="$TESTDBS router"
+fi
+if ( test -n "$MYSQLLIBS" ); then
+	TESTDBS="$TESTDBS mysqlprotocol"
+fi
+AC_SUBST(TESTDBS)
+AC_SUBST(TESTAPIS)
+
+
+MAKELIST="config.mk src/common/defines.h src/server/sqlrelay/private/sqlrshm.h bin/sqlrclient-config bin/sqlrclientwrapper-config bin/sqlrserver-config init/rc.sqlrelay init/rc.sqlrcachemanager init/com.firstworks.sqlrelay.plist init/com.firstworks.sqlrcachemanager.plist sqlrelay-c++.pc sqlrelay-c.pc test/testall.sh test/test.sh doc/admin/installingpkg.wt"
+AC_OUTPUT($MAKELIST)
+chmod 755 bin/sqlrclient-config
+chmod 755 bin/sqlrclientwrapper-config
+chmod 755 bin/sqlrserver-config
+chmod 755 init/rc.sqlrelay
+chmod 755 init/rc.sqlrcachemanager
+chmod 755 test/testall.sh
+chmod 755 test/test.sh
+sed -e "s|\${DESTDIR}||g" init/com.firstworks.sqlrcachemanager.plist > init/com.firstworks.sqlrcachemanager.plist.new
+mv init/com.firstworks.sqlrcachemanager.plist.new init/com.firstworks.sqlrcachemanager.plist
+sed -e "s|\${DESTDIR}||g" init/com.firstworks.sqlrelay.plist > init/com.firstworks.sqlrelay.plist.new
+mv init/com.firstworks.sqlrelay.plist.new init/com.firstworks.sqlrelay.plist
+sed -e "s|@bindir@|$bindir|g" init/sqlrelay.service.in | sed -e "s|@libdir@|$libdir|g" | sed -e "s|\${exec_prefix}|$exec_prefix|g" | sed -e "s|\${prefix}|$prefix|g" | sed -e "s|\${DESTDIR}||g" > init/sqlrelay.service
+sed -e "s|@bindir@|$bindir|g" init/sqlrcachemanager.service.in | sed -e "s|@libdir@|$libdir|g" | sed -e "s|\${exec_prefix}|$exec_prefix|g" | sed -e "s|\${prefix}|$prefix|g" | sed -e "s|\${DESTDIR}||g" > init/sqlrcachemanager.service
+
+
+dnl Some versions of NetBSD create a libtool with -lgcc_s -lgcc in it, but don't
+dnl provide a shared libgcc.
+dnl Also, some versions of NetBSD create a libtool with -lgcc_s_pic in it, but
+dnl don't provide a shraed libgcc_s_pic.
+dnl These cause all kinds of link failures.  Fix them
+if ( test -r "libtool" )
+then
+	sed -e "s|-lgcc_s -lgcc|-lgcc_s|g" \
+		-e "s|-lgcc_s_pic|-lgcc_s|g" \
+		libtool > libtool.new
+	mv libtool.new libtool
+fi
+
+
+dnl Summary.
+echo
+echo "***** Summary ***********************************************"
+
+echo " Version      : $SQLR_VERSION"
+echo
+echo " Branding     : $SQL_RELAY / $SQLRELAY / $SQLR"
+echo
+echo " Command Line : Clients     $CMDLINEBUILD"
+echo
+echo " APIs         : C/C++       $CPPBUILD           Perl       $PERLBUILD"
+echo "                Python      $PYTHONBUILD           Ruby       $RUBYBUILD"
+echo "                PHP         $PHPBUILD           Java       $JAVABUILD"
+echo "                PHP PDO     $PHPPDOBUILD           ODBC       $ODBCDRIVERBUILD"
+echo "                TCL         $TCLBUILD           Erlang     $ERLANGBUILD"
+echo "                Mono        $MONOBUILD           node.js    $NODEJSBUILD"
+echo
+echo " Drop-In Replacement Libraries:"
+echo "                MySQL       $MYSQLDIBUILD        PostgreSQL $POSTGRESQLDIBUILD"
+echo
+echo " Databases    : Oracle      $ORACLEBUILD    MySQL      $MYSQLBUILD"
+echo "                PostgreSQL  $POSTGRESQLBUILD    SQLite     $SQLITEBUILD"
+echo "                FreeTDS     $FREETDSBUILD    SAP/Sybase $SYBASEBUILD"
+echo "                ODBC        $ODBCBUILD    DB2        $DB2BUILD"
+echo "                Firebird    $FIREBIRDBUILD    MDB Tools  $MDBTOOLSBUILD"
+echo "                Informix    $INFORMIXBUILD    Router     $ROUTERBUILD"
+echo "*************************************************************"
+echo
+echo "If you expected a Database or API that doesn't show up in the Summary"
+echo "then the configure script probably couldn't find a package it needed to"
+echo "build it.  You can manually specify package locations using command line"
+echo "options."
+echo
+echo "Type:  configure --help   for a list of options."
+echo

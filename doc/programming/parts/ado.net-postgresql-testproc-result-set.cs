@@ -1,0 +1,10 @@
+sqlrcom.CommandText = "select * from examplefunc() as (exampleint int, examplefloat float, examplechar char(40))";
+System.Data.IDataReader datareader = sqlrcom.ExecuteReader();
+datareader.Read();
+Int64 out1 = datareader.GetInt64(0);
+Double out2 = datareader.GetDouble(1);
+String out3 = datareader.GetString(2);
+datareader.Read();
+out1 = datareader.GetInt64(0);
+out2 = datareader.GetDouble(1);
+out3 = datareader.GetString(2);

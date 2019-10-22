@@ -1,0 +1,3 @@
+sqlrprotocol	*new_sqlrprotocol_@module@(sqlrservercontroller *cont,
+							sqlrprotocols *ps,
+							domnode *parameters);

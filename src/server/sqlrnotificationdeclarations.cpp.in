@@ -1,0 +1,2 @@
+sqlrnotification	*new_sqlrnotification_@module@(sqlrnotifications *ns,
+							domnode *parameters);

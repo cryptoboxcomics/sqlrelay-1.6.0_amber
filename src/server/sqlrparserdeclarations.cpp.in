@@ -1,0 +1,2 @@
+sqlrparser	*new_sqlrparser_@module@(sqlrservercontroller *cont,
+						domnode *parameters);

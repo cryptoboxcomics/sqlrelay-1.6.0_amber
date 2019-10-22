@@ -1,0 +1,3 @@
+	if (!charstring::compare(dbase,"@module@")) {
+		conn=new_@module@connection(this);
+	} else

@@ -1,0 +1,3 @@
+sqlrrouter	*new_sqlrrouter_@module@(sqlrservercontroller *cont,
+						sqlrrouters *rs,
+						domnode *parameters);

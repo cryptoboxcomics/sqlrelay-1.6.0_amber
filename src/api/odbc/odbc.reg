@@ -1,0 +1,20 @@
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources]
+"My SQL Relay DSN"=-
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBC.INI\ODBC Data Sources]
+"My SQL Relay DSN"="SQL Relay"
+
+[-HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBC.INI\My SQL Relay DSN]
+
+[HKEY_LOCAL_MACHINE\SOFTWARE\ODBC\ODBC.INI\My SQL Relay DSN]
+"Description"="My SQL Relay DSN"
+"Driver"="C:\\Program Files\\Firstworks\\bin\\libsqlrodbc.dll"
+"Server"="sqlrserver"
+"Port"="9000"
+"User"="test"
+"Password"="test"
+"RetryTime"="0"
+"Tries"="1"
+"Debug"="0"

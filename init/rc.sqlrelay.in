@@ -1,0 +1,286 @@
+#! /bin/sh
+#
+# sqlrelay   This starts and stops SQL Relay.
+#
+# chkconfig: 345 85 15
+# description: SQL Relay 
+#
+### BEGIN INIT INFO
+# Provides:		sqlrelay
+# Required-Start:	$local_fs $remote_fs $network $time
+# Required-Stop:	$local_fs $remote_fs $network $time
+# Should-Start:		$syslog
+# Should-Stop:		$syslog
+# Default-Start:	2 3 4 5
+# Default-Stop:		0 1 6
+# Short-Description:	SQL Relay
+### END INIT INFO
+#
+# PROVIDE: sqlrelay
+# REQUIRE: NETWORKING
+
+
+# define default message functions
+success() {
+    printf success
+}
+failure() {
+    printf failure
+}
+passed() {
+    printf passed
+}
+
+
+# override them with fancier ones if available
+if ( test -r "/etc/init.d/functions" )
+then
+    . /etc/init.d/functions
+else
+    if ( test -r "/etc/rc.d/init.d/functions" )
+    then
+        . /etc/rc.d/init.d/functions
+    fi
+fi
+
+
+# for BSD-ish systems, bail if sqlrelay isn't enabled in /etc/rc.conf
+BSD="no"
+PRINTACTION="yes"
+if ( test -r "/etc/rc.conf" )
+then
+
+    BSD="yes"
+
+    # load subroutines to process /etc/rc.conf
+    . /etc/rc.conf
+
+    UNAME=`uname`
+    if ( test "$UNAME" = "OpenBSD" )
+    then
+
+	PRINTACTION="no"
+
+        # on OpenBSD sqlrelay_flags=NO disables
+        if ( test "${sqlrelay_flags}" = "NO" -o \
+                    "${sqlrelay_flags}" = "No" -o \
+                    "${sqlrelay_flags}" = "no" )
+        then
+            exit 0
+        fi
+
+    elif ( test "$UNAME" = "FreeBSD" )
+    then
+
+        # on FreeBSD sqlrelay_enable=YES enables
+        if ( test "${sqlrelay_enable}" != "YES" -a \
+                    "${sqlrelay_enable}" != "Yes" -a \
+                    "${sqlrelay_enable}" != "yes" )
+        then
+            exit 0
+        fi
+
+    else
+
+        # on NetBSD and Minix (and others) sqlrelay=YES enables
+        if ( test "${sqlrelay}" != "YES" -a \
+                    "${sqlrelay}" != "Yes" -a \
+                    "${sqlrelay}" != "yes" )
+        then
+            exit 0
+        fi
+    fi
+fi
+
+
+# define paths
+prefix=@prefix@
+sysconfdir=@sysconfdir@
+localstatedir=@localstatedir@
+tmpdir=${localstatedir}/sqlrelay/tmp
+
+
+# define lock directory
+lockdir=/tmp
+if ( test -w "/var/lock/subsys" )
+then
+    lockdir=/var/lock/subsys
+elif ( test -w "/var/lock" )
+then
+    lockdir=/var/lock
+fi
+
+
+# Add appropriate bin/lib paths
+if ( test "${prefix}" != "/usr" )
+then
+    PATH=$PATH:${prefix}/bin
+    export PATH
+    LD_LIBRARY_PATH=$LD_LIBRARY_PATH:${prefix}/lib
+    export LD_LIBRARY_PATH
+fi
+
+
+# initialize return value
+RETVAL=0
+
+
+cleanup() {
+    for i in `ls ${tmpdir}/pids/* 2>/dev/null`
+    do
+        if ( test -r "$i" )
+        then
+            PID=`cat $i`
+            if ( test -z "`ps -p $PID 2> /dev/null | grep sqlr-`" )
+            then
+                echo "$PID is not sqlr! removing pidfile ..."
+                rm -f $i
+            fi
+        fi
+    done
+}
+
+start_sqlrelay() {
+
+    # print Starting if necessary
+    if ( test "$BSD" = "yes" -a "$PRINTACTION" = "yes" )
+    then
+        printf "Starting"
+    fi
+
+    # on BSD, print:
+    # sqlrelay
+    #
+    # on non-BSD, print:
+    # Starting sqlrelay: success
+    if ( test "$BSD" = "yes" )
+    then
+        printf " sqlrelay"
+    fi
+
+    sqlr-start 0<&- 1>&- 2>&-
+    RETVAL=$?
+    if ( test "$BSD" != "yes" )
+    then
+        printf "Starting sqlrelay: "
+        if ( test $RETVAL -eq 0 )
+        then
+            success
+        else
+            failure
+        fi
+        echo
+    fi
+
+    if ( test "$BSD" = "yes" )
+    then
+        if ( test "$PRINTACTION" = "yes" )
+        then
+            echo "."
+        fi
+    fi
+
+    if ( test $RETVAL -eq 0 )
+    then
+        touch ${lockdir}/sqlrelay
+    fi
+
+    cleanup
+
+    return $RETVAL
+}
+
+stop_sqlrelay() {
+
+    # print Stopping if necessary
+    if ( test "$BSD" = "yes" -a "$PRINTACTION" = "yes" )
+    then
+        printf "Stopping"
+    fi
+
+    # on BSD, print:
+    # sqlrelay
+    #
+    # on non-BSD, print:
+    # Stopping sqlrelay: success
+    if ( test "$BSD" = "yes" )
+    then
+        printf " sqlrelay ("
+    fi
+
+    sqlr-stop 0<&- 1>&- 2>&-
+    RETVAL=$?
+    if ( test "$BSD" != "yes" )
+    then
+        printf "Stopping sqlrelay: "
+        if ( test $RETVAL -eq 0 )
+        then
+            success
+        else
+            failure
+        fi
+        echo
+    fi
+
+    if ( test "$BSD" = "yes" )
+    then
+        if ( test "$PRINTACTION" = "yes" )
+        then
+            echo "."
+       fi
+    fi
+
+    if ( test $RETVAL -eq 0 )
+    then
+        rm -f ${lockdir}/sqlrelay
+    fi
+
+    cleanup
+
+    return $RETVAL
+}
+
+restart_sqlrelay() {
+    stop_sqlrelay
+    start_sqlrelay
+}
+
+condrestart_sqlrelay() {
+    if ( test -r "${lockdir}/sqlrelay" )
+    then
+        restart_sqlrelay
+    fi
+    return 0
+}
+
+
+# See how we were called.
+case "$1" in
+    start)
+        start_sqlrelay
+        ;;
+    stop)
+        stop_sqlrelay
+        ;;
+    restart)
+        restart_sqlrelay
+        ;;
+    reload)
+        restart_sqlrelay
+        ;;
+    condrestart)
+        condrestart_sqlrelay
+        ;;
+    *)
+        if ( test -r "/etc/rc.subr" -o -r "/etc/rc.d/rc.subr" )
+        then
+            # on BSD systems assume start
+            start_sqlrelay
+        else
+            # on others, print usage
+            echo "Usage: sqlrelay {start|stop|restart|condrestart}"
+            RETVAL=1
+        fi
+esac
+
+exit $RETVAL

@@ -1,0 +1,12 @@
+[Unit]
+Description=SQL Relay
+After=network.target
+
+[Service]
+Environment=LD_LIBRARY_PATH=/usr/local/firstworks/lib
+ExecStart=/usr/local/firstworks/bin/sqlr-start
+Type=forking
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target

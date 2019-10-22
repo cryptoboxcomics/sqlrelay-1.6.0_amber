@@ -1,0 +1,11 @@
+my $sth=$dth->prepare("exec exampleproc");
+$sth->bind_param("in1",1);
+$sth->bind_param("in2",1.1,2,1);
+$sth->bind_param("in3","hello");
+my $out1;
+my $out2;
+my $out3;
+$sth->bind_param_inout("out1",\$out1,20);
+$sth->bind_param_inout("out2",\$out2,20);
+$sth->bind_param_inout("out3",\$out3,20);
+$sth->execute();

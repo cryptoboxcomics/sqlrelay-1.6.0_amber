@@ -1,0 +1,13 @@
+DESTDIR=
+prefix=${DESTDIR}/usr/local/firstworks
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+
+Name: sqlrelay-c++
+Description: SQL Relay C++ client library
+Version: 1.6.0
+Requires: rudiments
+Libs: -L${exec_prefix}/lib -lsqlrclient 
+Cflags: -I${prefix}/include

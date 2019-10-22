@@ -1,0 +1,5 @@
+[Unit]
+Description=Delete Recent Queries every 500 seconds
+
+[Service]
+ExecStart=/usr/local/firstworks/deleterecent.sh
